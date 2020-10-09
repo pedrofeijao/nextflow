@@ -7,12 +7,23 @@ process merge_overlapping_amplicons {
     input:
         path manifest
     output:
-        path "merged_manifest.txt"
+        path "${manifest}.merged.txt"
     script:
     """
-    # cp $manifest merged_manifest.txt
-    # merge_overlap_amplicons.py $manifest merged_manifest.txt
-    fix_overlap_amplicons.py $manifest merged_manifest.txt
+    merge_overlap_amplicons.py $manifest ${manifest}.merged.txt
+    """
+}
+
+process fix_overlapping_amplicons {
+    /* fix overlapping amplicons, adjusting coordinates to they don't overlap. */
+    container "quay.io/biocontainers/pandas:0.24.1"
+    input:
+        path manifest
+    output:
+        path "${manifest}.fixed.txt"
+    script:
+    """
+    fix_overlap_amplicons.py $manifest ${manifest}.fixed.txt
     """
 }
 
@@ -25,13 +36,13 @@ process manifest_to_bed {
     input:
         file manifest
     output:
-        file "manifest.bed"
+        file "${manifest}.bed"
     """
     #!/usr/bin/env python
     import pandas as pd
     manifest = pd.read_csv("$manifest", sep="\t")
     bed = manifest.sort_values(["Chr","Start"]).reset_index()
-    bed.to_csv("manifest.bed",  columns=["Chr","Start","End","HGNC_gene","Amplicon_ID"],  header=False, sep="\t", index=False)
+    bed.to_csv("${manifest}.bed",  columns=["Chr","Start","End","HGNC_gene","Amplicon_ID"],  header=False, sep="\t", index=False)
     """
 }
 

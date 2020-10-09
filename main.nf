@@ -8,7 +8,7 @@ nextflow run cnv_pipeline.nf --run_id [RUN_ID]
 */
 
 /* Include required modules: */
-include { merge_overlapping_amplicons; manifest_to_bed; manifest_to_covcopcan_design} from './modules/manifest'
+include { fix_overlapping_amplicons; manifest_to_bed; manifest_to_covcopcan_design} from './modules/manifest'
 include { get_read_depth_per_amplicon } from  './modules/mapping'
 include {depth_to_covcopcan_matrix; covcopcan_cnv; covcopcan_format; exome_depth_cnv;
     format_exome_depth_output; panelcn_MOPS_cnv; format_MOPS_calls; aggregate_cnv_calls } from './modules/cnv'
@@ -17,15 +17,6 @@ include {depth_to_covcopcan_matrix; covcopcan_cnv; covcopcan_format; exome_depth
 /*****************
 ** CNV Workflow **
 *****************/
-process nothing {
-    echo true
-    input:
-        path f
-        path manif
-    """
-    echo I got $f
-    """
-}
 workflow  {
     // Set up the main input channel: BAM files
     bam_files = Channel.fromPath(params.bam_files)
@@ -38,15 +29,15 @@ workflow  {
     manifest_file = "$workflow.projectDir/$params.manifest_file"
     exome_bed = "$workflow.projectDir/$params.exome_bed"
     //
-    merged_manifest = merge_overlapping_amplicons(manifest_file)
-    bed_file = manifest_to_bed(merged_manifest)
+    fixed_manifest = fix_overlapping_amplicons(manifest_file)
+    bed_file = manifest_to_bed(fixed_manifest)
 
     // Read depths from BAM files
     read_depth = get_read_depth_per_amplicon(bam_files, bed_file)
 
     // CovCopCan
     // covcopcan_jar = "$workflow.projectDir/$params.covcopcan_jar"
-    covcopcan_design = manifest_to_covcopcan_design(merged_manifest)
+    covcopcan_design = manifest_to_covcopcan_design(fixed_manifest)
     covcopcan_matrix = depth_to_covcopcan_matrix(read_depth.collect())
     // covcopcan_output_folder = covcopcan_cnv(covcopcan_jar, covcopcan_design, covcopcan_matrix)
     // covcopcan_cnv_calls = covcopcan_format(exome_bed, covcopcan_output_folder)
