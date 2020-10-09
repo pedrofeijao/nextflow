@@ -1,4 +1,3 @@
-import java.nio.file.Paths
 // ExomeDepth
 params.trans_prob = 0.15
 params.exomedepth_output = "exome_depth_cnv.txt"
@@ -11,10 +10,8 @@ params.panelcn_MOPS_fmt_output = "panelcn_MOPS_cnv_fmt.csv"
 
 // CovCopCan
 params.covcopcan_matrix_file = "covcopcan_matrix.txt"
-params.covcopcan_jar = "/data/pfeijao/CNV/callers/CovCopCan/Binaries/CovCopCan-1.3.3.jar"
 params.referenceAmpliconNumber = 45
-params.exomedepth_path = Paths.get(baseDir.toString(), "bin/ExomeDepthCNVCall.R") // R main executable
-params.panelcn_MOPS_path = Paths.get(baseDir.toString(), "bin/panelcnMOPS_CNV_call.R")
+
 
 /**************
 ** CovCopCan **
@@ -37,12 +34,13 @@ process covcopcan_cnv {
     to make CNV calls.
     */
     input:
-        file covcopcan_design
-        file covcopcan_matrix
+        path covcopcan_jar
+        path covcopcan_design
+        path covcopcan_matrix
     output:
         path "covcopcan_output"
     """
-    xvfb-run --auto-servernum --server-num=1 java -Dprism.order=sw -jar $params.covcopcan_jar -g \\
+    xvfb-run --auto-servernum --server-num=1 java -Dprism.order=sw -jar $covcopcan_jar -g \\
     -d $covcopcan_design -m $covcopcan_matrix -o covcopcan_output --gcCorrection false --ampLenCorrection false \\
     --minCNVLength 2  --exportRawData false --referenceAmpliconNumber $params.referenceAmpliconNumber \\
     --deviationFromAverage 2 --zScoreDetection true
@@ -51,11 +49,12 @@ process covcopcan_cnv {
 process covcopcan_format {
     // Format output VCFs by CovCopCan into a .txt (tab-separated) file. This is the final CNV output for CovCopCan.
     input:
+        path exome_bed
         path covcopcan_output_folder
     output:
         path "covcopcan_cnv.txt"
     """
-    covcopcan_vcf_to_tsv.py $covcopcan_output_folder/VCF/*vcf -e $params.exome_bed -m $covcopcan_output_folder/covcopcan_matrix_normalized_data.tsv -o covcopcan_cnv.txt
+    covcopcan_vcf_to_tsv.py $covcopcan_output_folder/VCF/*vcf -e $exome_bed -m $covcopcan_output_folder/covcopcan_matrix_normalized_data.tsv -o covcopcan_cnv.txt
     """
 
 }
@@ -68,15 +67,17 @@ process exome_depth_cnv {
     Also outputs a file with read counts per exon (optional file, might be good for troubleshooting)
     */
     input:
-        file bam_files
-        file bai_files
-        file bed_file
+        path  exomedepth_path
+        path  reference_genome
+        path  bam_files
+        path  bai_files
+        path  bed_file
     output:
         path params.exomedepth_output, emit: exomedepth_output
         path params.exomedepth_count_output, emit: exomedepth_count_output
     """
-    # Rscript $params.exomedepth_path --bamdir . --ref_genome $params.reference_genome --trans_prob $params.trans_prob --out $params.exomedepth_output --counts_out $params.exomedepth_count_output --bed_file $bed_file
-    Rscript $params.exomedepth_path --bamdir . --ref_genome $params.reference_genome --trans_prob $params.trans_prob --out $params.exomedepth_output --counts_out $params.exomedepth_count_output
+    # Rscript $exomedepth_path --bamdir . --ref_genome $reference_genome --trans_prob $params.trans_prob --out $params.exomedepth_output --counts_out $params.exomedepth_count_output --bed_file $bed_file
+    Rscript $exomedepth_path --bamdir . --ref_genome $reference_genome --trans_prob $params.trans_prob --out $params.exomedepth_output --counts_out $params.exomedepth_count_output
     """
 }
 
@@ -98,13 +99,14 @@ process panelcn_MOPS_cnv {
     R script with the panelcn.MOPS caller. Uses all .bam files and outputs a .txt file (tab-separated) with the CNV calls.
     */
     input:
-        file all_bam_files
-        file all_bai_files
-        file bed_file
+        path  panelcn_MOPS_path
+        path  all_bam_files
+        path  all_bai_files
+        path  bed_file
     output:
         path params.panelcn_MOPS_output
     """
-    Rscript $params.panelcn_MOPS_path --bamdir . --ref_genome $params.reference_genome --out $params.panelcn_MOPS_output --bedfile $bed_file
+    Rscript $panelcn_MOPS_path --bamdir . --ref_genome $params.reference_genome --out $params.panelcn_MOPS_output --bedfile $bed_file
     """
 }
 
@@ -113,11 +115,12 @@ process format_MOPS_calls {
     panelcn.MOPS calls need some formatting. This is done here with a python script.
     */
     input:
+        path exome_bed
         path panelcn_MOPS_output
     output:
         path params.panelcn_MOPS_fmt_output
     """
-        format_MOPS_calls.py $panelcn_MOPS_output -e $params.exome_bed -o $params.panelcn_MOPS_fmt_output
+        format_MOPS_calls.py $panelcn_MOPS_output -e $exome_bed -o $params.panelcn_MOPS_fmt_output
     """
 }
 /*****************
