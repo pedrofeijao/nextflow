@@ -21,6 +21,7 @@ process get_read_depth_per_amplicon {
     /*
     Here we use bedtools to count the number of reads per amplicon.
     */
+    container 'quay.io/biocontainers/bedtools:2.29.2--hc088bd4_0'
     cpus 4
     input:
         path bam_file

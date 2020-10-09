@@ -45,22 +45,22 @@ workflow  {
     read_depth = get_read_depth_per_amplicon(bam_files, bed_file)
 
     // CovCopCan
-    covcopcan_jar = "$workflow.projectDir/$params.covcopcan_jar"
+    // covcopcan_jar = "$workflow.projectDir/$params.covcopcan_jar"
     covcopcan_design = manifest_to_covcopcan_design(merged_manifest)
     covcopcan_matrix = depth_to_covcopcan_matrix(read_depth.collect())
-    covcopcan_output_folder = covcopcan_cnv(covcopcan_jar, covcopcan_design, covcopcan_matrix)
-    covcopcan_cnv_calls = covcopcan_format(exome_bed, covcopcan_output_folder)
+    // covcopcan_output_folder = covcopcan_cnv(covcopcan_jar, covcopcan_design, covcopcan_matrix)
+    // covcopcan_cnv_calls = covcopcan_format(exome_bed, covcopcan_output_folder)
 
     // ExomeDepth
-    exomedepth_path = "$workflow.projectDir/$params.exomedepth_path"
-    exome_depth_cnv(exomedepth_path, reference_genome, bam_files.collect(), bai_files.collect(), bed_file)
-    exome_depth_cnv_calls = format_exome_depth_output(exome_depth_cnv.out.exomedepth_output)
+    // exomedepth_path = "$workflow.projectDir/$params.exomedepth_path"
+    // exome_depth_cnv(exomedepth_path, reference_genome, bam_files.collect(), bai_files.collect(), bed_file)
+    // exome_depth_cnv_calls = format_exome_depth_output(exome_depth_cnv.out.exomedepth_output)
 
     // MOPS
-    panelcn_MOPS_path = "$workflow.projectDir/$params.panelcn_MOPS_path"
-    panelcn_MOPS_cnv_calls = format_MOPS_calls(exome_bed, panelcn_MOPS_cnv(panelcn_MOPS_path, bam_files.collect(), bai_files.collect(), bed_file))
+    // panelcn_MOPS_path = "$workflow.projectDir/$params.panelcn_MOPS_path"
+    // panelcn_MOPS_cnv_calls = format_MOPS_calls(exome_bed, panelcn_MOPS_cnv(panelcn_MOPS_path, bam_files.collect(), bai_files.collect(), bed_file))
 
     // Aggregate calls:
-    aggregate_cnv_calls(exome_depth_cnv_calls, panelcn_MOPS_cnv_calls, covcopcan_cnv_calls)
+    // aggregate_cnv_calls(exome_depth_cnv_calls, panelcn_MOPS_cnv_calls, covcopcan_cnv_calls)
 
 }
