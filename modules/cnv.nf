@@ -12,7 +12,6 @@ params.panelcn_MOPS_fmt_output = "panelcn_MOPS_cnv_fmt.csv"
 params.covcopcan_matrix_file = "covcopcan_matrix.txt"
 params.referenceAmpliconNumber = 45
 
-
 /**************
 ** CovCopCan **
 ***************/
@@ -42,7 +41,7 @@ process covcopcan_cnv {
     output:
         path "covcopcan_output"
     """
-    xvfb-run --auto-servernum --server-num=1 /opt/app/jre1.8.0_221/bin/java -Dprism.order=sw -jar /opt/app/CovCopCan-1.3.3.jar -g \\
+    xvfb-run --auto-servernum --server-num=1 /opt/app/jre1.8.0_261/bin/java -Dprism.order=sw -jar /opt/app/CovCopCan-1.3.3.jar -g \\
     -d $covcopcan_design -m $covcopcan_matrix -o covcopcan_output --gcCorrection false --ampLenCorrection false \\
     --minCNVLength 2  --exportRawData false --referenceAmpliconNumber $params.referenceAmpliconNumber \\
     --deviationFromAverage 2 --zScoreDetection true
@@ -68,11 +67,12 @@ process exome_depth_cnv {
     Main ExomeDepth step. An R script takes all bam files and calls CNVs, outputting a .txt (tab-separated) file with all calls.
     Also outputs a file with read counts per exon (optional file, might be good for troubleshooting)
     */
-    container 'quay.io/biocontainers/r-exomedepth:1.1.15--r40h6786f55_1'
-
+    // container 'quay.io/biocontainers/r-exomedepth:1.1.15--r40h6786f55_1'
+    container 'docker.io/pedrofeijao/cnv_r:fisrt'
     input:
         path  exomedepth_path
         path  reference_genome
+        path  reference_genome_idx
         path  bam_files
         path  bai_files
         path  bed_file
@@ -80,12 +80,12 @@ process exome_depth_cnv {
         path params.exomedepth_output, emit: exomedepth_output
         path params.exomedepth_count_output, emit: exomedepth_count_output
     """
-    # Rscript $exomedepth_path --bamdir . --ref_genome $reference_genome --trans_prob $params.trans_prob --out $params.exomedepth_output --counts_out $params.exomedepth_count_output --bed_file $bed_file
     Rscript $exomedepth_path --bamdir . --ref_genome $reference_genome --trans_prob $params.trans_prob --out $params.exomedepth_output --counts_out $params.exomedepth_count_output
     """
 }
 
 process format_exome_depth_output {
+    container "quay.io/biocontainers/pandas:0.24.1"
     input:
         path exomedepth_output
     output:
@@ -102,7 +102,8 @@ process panelcn_MOPS_cnv {
     /*
     R script with the panelcn.MOPS caller. Uses all .bam files and outputs a .txt file (tab-separated) with the CNV calls.
     */
-    container 'quay.io/biocontainers/bioconductor-panelcn.mops:1.10.0--r40_0'
+    // container 'quay.io/biocontainers/bioconductor-panelcn.mops:1.10.0--r40_0'
+    container 'docker.io/pedrofeijao/cnv_r:fisrt'
     input:
         path  panelcn_MOPS_path
         path  all_bam_files
@@ -119,6 +120,7 @@ process format_MOPS_calls {
     /*
     panelcn.MOPS calls need some formatting. This is done here with a python script.
     */
+    container "quay.io/biocontainers/pandas:0.24.1"
     input:
         path exome_bed
         path panelcn_MOPS_output
@@ -133,6 +135,7 @@ process format_MOPS_calls {
 ******************/
 process aggregate_cnv_calls {
     // Takes the results from all CNV callers and produces a file with combined calls.
+    container "quay.io/biocontainers/pandas:0.24.1"
     input:
         path exomedepth_fmt_output
         path panelcn_MOPS_fmt_output

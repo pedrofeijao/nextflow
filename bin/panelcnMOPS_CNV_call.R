@@ -1,5 +1,4 @@
 library(panelcn.mops)
-library(data.table)
 library(R.utils)
 args=cmdArgs()
 bams <- Sys.glob(file.path(args$bamdir,"*bam")) # list of files
@@ -8,18 +7,6 @@ print(bams)
 ref_genome <- args$ref_genome # "/srv/data2/pfeijao/ref/hg19.fa"  # path of reference; has to be a config/parameter.
 out <- args$out # "CNV_calls.txt"
 bed.file <- args$bedfile
-
-# # if (file.exists(out)) {
-# #     print(paste("==================== Output exists, skipping", out))
-# #     quit(status=0, save='no')
-# # }
-# print(paste("================== Running on folder", out))
-
-# Filter BLANK:
-`%like%` <- function (x, pattern) {
-  grepl(pattern, x, ignore.case=TRUE)
-}
-bams <- bams[!(bams %like% "blank")]
 
 # MOPS: count windows
 countWindows <- getWindows(bed.file)
