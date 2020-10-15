@@ -68,7 +68,7 @@ process exome_depth_cnv {
     Also outputs a file with read counts per exon (optional file, might be good for troubleshooting)
     */
     // container 'quay.io/biocontainers/r-exomedepth:1.1.15--r40h6786f55_1'
-    container 'docker.io/pedrofeijao/cnv_r:fisrt'
+    container '677424885543.dkr.ecr.ca-central-1.amazonaws.com/r-cnv-callers:latest'
     input:
         path  exomedepth_path
         path  reference_genome
